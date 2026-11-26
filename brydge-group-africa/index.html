@@ -1703,7 +1703,7 @@
 .maison .impl-txt p:first-child { margin-top: 0; }
 .maison .impl-txt p { margin-top: 18px; font-size: 1.04rem; line-height: 1.75; color: #4a5062; }
 .maison .impl-txt p.fort { font-weight: 700; color: var(--navy); }
-@media (max-width: 900px) { .maison .impl-tete { grid-template-columns: 1fr; } .maison .impl-photo { width: min(520px, 100%); margin: 0 auto 12%; order: 2; } .maison .impl-photo img { left: 0; width: 100%; } .maison .impl-photo figcaption { left: 0; } }
+@media (max-width: 900px) { .maison .impl-tete { grid-template-columns: 1fr; } .maison .impl-titre { margin-bottom: 0; } .maison .impl-photo { width: min(520px, 100%); margin: -36px auto 2%; order: 0; } .maison .impl-photo img { left: 0; width: 100%; } .maison .impl-photo figcaption { left: 0; } }
 .maison .impl-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(16px, 2vw, 26px); margin-top: clamp(40px, 5vw, 64px); }
 .maison .impl-carte { position: relative; overflow: hidden; isolation: isolate; aspect-ratio: 4 / 5.6; border-radius: 28px;
   background: radial-gradient(ellipse 90% 70% at 70% 18%, color-mix(in srgb, var(--c) 70%, #fff) 0%, var(--c) 45%, var(--c2) 100%);
@@ -2684,10 +2684,15 @@ window.AFRIQUE3D = {"anneaux":[[[22.2,-6.68],[21.74,-7.91],[21.8,-8.48],[22.44,-
   }
 
   var T = 0, H = 0, haut = 0, deb = 0;
+  /* sur téléphone : taille de l'Afrique au premier écran, puis réduite au-dessus des textes */
+  function grandeMobile() { var fh = cadre.offsetHeight, fw = cadre.offsetWidth; return Math.max(1, Math.min(innerHeight * 0.5 / fh, innerWidth * 0.9 / fw)); }
+  function petiteMobile() { return Math.max(0.5, Math.min(grandeMobile() * 0.55, innerHeight * 0.26 / cadre.offsetHeight)); }
+  function basPetiteCarte() { return hdr() + 14 + cadre.offsetHeight * petiteMobile() * 0.9; }
   function mesurer() {
     var vh = innerHeight, h = hdr();
-    T = vh * 0.9;                                   // longueur du passage hero → textes
-    var dispo = vh - h - 48;                        // place pour les textes sous l'en-tête
+    var mob = innerWidth <= 900;
+    T = vh * (mob ? 1.1 : 0.9);                     // longueur du passage hero → textes
+    var dispo = mob ? vh - basPetiteCarte() - 40 : vh - h - 48;   // place pour les textes (sous la petite Afrique sur téléphone)
     haut = suite.offsetHeight;
     deb = Math.max(0, haut - dispo);                // ce qui dépasse de l'écran
     H = Math.max(vh * 0.35, deb + vh * 0.25);       // temps de lecture, plus le défilement du texte
@@ -2699,19 +2704,19 @@ window.AFRIQUE3D = {"anneaux":[[[22.2,-6.68],[21.74,-7.91],[21.8,-8.48],[22.44,-
     var r = sec.getBoundingClientRect(), vw = innerWidth, vh = innerHeight;
     var y = Math.max(0, Math.min(T + H, -r.top));
     var fw = cadre.offsetWidth, fh = cadre.offsetHeight, mobile = vw <= 900;
-    var h = hdr(), demiHdr = h / 2;
+    var h = hdr(), demiHdr = h / 2, st0 = scene.style;
 
     // premier écran : l'Afrique à droite (sous les boutons sur mobile)
-    var grand = mobile ? Math.min(vh * 0.4 / fh, vw * 0.9 / fw) : Math.min(vh * 1.06 / fh, vw * 0.5 / fw);
+    var grand = mobile ? Math.min(vh * 0.36 / fh, vw * 0.84 / fw) : Math.min(vh * 1.06 / fh, vw * 0.5 / fw);
     grand = Math.max(1, grand);
-    var tyHaut = mobile ? sousLesBoutons(fh * grand) : vh * 0.1 - demiHdr;
+    var tyHaut = vh * 0.1 - demiHdr;
     var txHaut = mobile ? 0 : Math.min(vw * 0.21, vw / 2 - fw * grand * 0.34);
 
     // deuxième état : l'Afrique à gauche, centrée sous l'en-tête
     var bord = Math.max(vw * 0.05, (vw - 1180) / 2), zone = (vw - 2 * bord) * 0.48;
     var tx2 = mobile ? 0 : bord + zone / 2 - vw / 2;
     var sc2 = mobile ? grand * 0.7 : Math.max(1, Math.min((vh - h - 40) / fh, zone * 1.15 / fw));
-    var ty2 = mobile ? tyHaut + vh * 0.2 : 0;
+    var ty2 = mobile ? tyHaut - vh * 0.25 : 0;
 
     var s1 = doux(borne(y / T));
     var sc = mix(grand, sc2, s1);
@@ -2730,10 +2735,34 @@ window.AFRIQUE3D = {"anneaux":[[[22.2,-6.68],[21.74,-7.91],[21.8,-8.48],[22.44,-
     st.setProperty('--txt-y', txtY.toFixed(1) + 'px');
     st.setProperty('--txt', (1 - borne((y - T * 0.08) / (T * 0.35))).toFixed(3));
 
+    /* sur téléphone (option A) : le titre et les boutons en haut, toujours nets et cliquables ;
+       l'Afrique commence juste sous les boutons. Au défilement, le texte remonte comme une page normale,
+       l'Afrique se cale au milieu de l'écran en rétrécissant, puis se pose en petit en haut de
+       « Qui sommes-nous », au-dessus du titre, et défile ensuite avec la section. */
+    if (mobile) {
+      var gm = grandeMobile(), pm = petiteMobile();
+      var basBoutons = rangee.getBoundingClientRect().bottom - txtY;     // bas des boutons, sans le défilement
+      var c0 = basBoutons + 18 + fh * gm / 2;                             // centre de départ : juste sous les boutons
+      var cMilieu = vh / 2 + demiHdr;
+      var cFin = h + 14 + fh * pm / 2;                                    // posée en haut de la section
+      var monte = deb ? deb * borne((y - T) / Math.max(1, H - vh * 0.2)) : 0;
+      var c = Math.max(cMilieu, c0 - y);
+      c = mix(c, cFin, doux(borne((y - T * 0.4) / (T * 0.5)))) - monte;
+      var scm = mix(gm, pm, doux(borne(y / (T * 0.9))));
+      st.setProperty('--sc', scm.toFixed(4));
+      st.setProperty('--tx', '0px');
+      st.setProperty('--ty', (c - cMilieu).toFixed(1) + 'px');
+      st.setProperty('--etiq-sc', (1 / scm).toFixed(3));
+      st.setProperty('--carte-o', '1');
+      txtY = -y;                                                          // défilement normal, sans flou
+      st.setProperty('--txt-y', txtY.toFixed(1) + 'px');
+      st.setProperty('--txt', '1');
+    }
+
     // les textes de « Nos implantations » arrivent à droite, puis défilent s'ils dépassent
-    var a = borne((y - T * (mobile ? 0.45 : 0.62)) / (T * (mobile ? 0.5 : 0.38)));   // après le passage de l'Afrique
-    var dispo = vh - h - 48;
-    var top0 = h + 24 + Math.max(0, (dispo - haut) / 2);
+    var a = mobile ? borne((y - T * 0.82) / (T * 0.18)) : borne((y - T * 0.62) / (T * 0.38));   // sur téléphone : une fois l'Afrique posée   // après le passage de l'Afrique
+    var dispo = mobile ? vh - basPetiteCarte() - 40 : vh - h - 48;
+    var top0 = mobile ? basPetiteCarte() + 14 : h + 24 + Math.max(0, (dispo - haut) / 2);
     var lecture = deb ? borne((y - T) / Math.max(1, H - vh * 0.2)) : 0;
     st.setProperty('--suite', a.toFixed(3));
     st.setProperty('--fond', (1 - borne((y - T * 0.3) / (T * 0.55))).toFixed(3));   // le fond du hero laisse place au blanc des cartes
